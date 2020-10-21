@@ -29,9 +29,14 @@ class StoreDevice
             throw new UnauthorizedException('You need to specify your device details.');
         }
 
+        $request->guard = $guard ?? config('auth.defaults.guard');
+        $user = $request->user($request->guard);
+
         // We save the device details
         $device = app(config('devices.device_model'))->query()->updateOrCreate([
             'udid' => $deviceUdid,
+            'deviceable_type' => get_class($user),
+            'deviceable_id' => $user->id
         ], [
             'os' => $request->header('X-Device-OS'),
             'os_version' => $request->header('X-Device-OS-Version'),
@@ -43,18 +48,17 @@ class StoreDevice
 
         $request->device = $device;
 
-        $request->guard = $guard ?? config('auth.defaults.guard');
-
         return $next($request);
+
     }
 
-    public function terminate($request, $response)
-    {
-        $user = $request->user($request->guard);
+    // public function terminate($request, $response)
+    // {
+    //     $user = $request->user($request->guard);
 
-        if (! empty($user) && ! empty($request->device)) {
-            $request->device->deviceable()->associate($user);
-            $request->device->save();
-        }
-    }
+    //     if (! empty($user) && ! empty($request->device)) {
+    //         $request->device->deviceable()->associate($user);
+    //         $request->device->save();
+    //     }
+    // }
 }
